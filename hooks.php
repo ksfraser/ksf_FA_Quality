@@ -44,21 +44,10 @@ class hooks_ksf_FA_Quality extends hooks
 
     function deactivate_extension($company, $force = false)
     {
-        $prefix = get_company_preference($company)['_prefix'] ?? '0_';
-        $tables = [
-            "{$prefix}ksf_quality_8d",
-            "{$prefix}ksf_quality_8d_team",
-            "{$prefix}ksf_quality_8d_containment",
-            "{$prefix}ksf_quality_8d_root_cause",
-            "{$prefix}ksf_quality_8d_corrective_action",
-            "{$prefix}ksf_quality_8d_implementation",
-            "{$prefix}ksf_quality_8d_prevention",
-            "{$prefix}ksf_quality_8d_recognition",
-            "{$prefix}ksf_quality_8d_attachment",
-        ];
-
-        foreach ($tables as $table) {
-            db_query("DROP TABLE IF EXISTS {$table}", "Cannot drop {$table}");
+        $uninstallFile = __DIR__ . '/sql/uninstall.sql';
+        if (file_exists($uninstallFile)) {
+            $sql = file_get_contents($uninstallFile);
+            run_db_import($sql, $company);
         }
 
         remove_security_section(SS_ksf_FA_Quality);

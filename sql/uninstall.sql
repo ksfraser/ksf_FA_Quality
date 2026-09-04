@@ -1,0 +1,10 @@
+-- Uninstall Quality 8D tables
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d_attachment`;
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d_recognition`;
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d_prevention`;
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d_implementation`;
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d_corrective_action`;
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d_root_cause`;
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d_containment`;
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d_team`;
+DROP TABLE IF EXISTS `@TB_PREF@ksf_quality_8d`;
