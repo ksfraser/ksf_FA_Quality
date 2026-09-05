@@ -3,55 +3,36 @@ declare(strict_types=1);
 
 define('SS_ksf_FA_Quality', 147 << 8);
 
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
+
+require_once __DIR__ . '/ComposerDependencies.php';
+\ksfraser\FrontAccounting\Common\Utils\ComposerDependencies::ensure(__DIR__);
+
 class hooks_ksf_FA_Quality extends hooks
 {
     var $module_name = 'ksf_FA_Quality';
     var $version = '2.4.19-1.0.0';
 
-    function install_extension($company, $force = false)
+    function activate_extension($company, $check_only=true)
     {
-        parent::install_extension($company, $force);
-
-        $autoload = __DIR__ . '/vendor/autoload.php';
-        if (!file_exists($autoload)) {
-            return false;
-        }
-        require_once $autoload;
-
-        $sqlFiles = [
-            'sql/install.sql',
-        ];
-
-        foreach ($sqlFiles as $file) {
-            $sqlFile = __DIR__ . '/' . $file;
-            if (file_exists($sqlFile)) {
-                $sql = file_get_contents($sqlFile);
-                $prefix = get_company_preference($company)['_prefix'] ?? '0_';
-                $sql = str_replace('0_', $prefix, $sql);
-                run_db_import($sql, $company);
-            }
+        if (!file_exists(dirname(__FILE__) . '/sql/install.sql')) {
+            return true;
         }
 
-        return true;
+        $updates = array(
+            'sql/install.sql' => array(
+                '0_ksf_quality_8d',
+            ),
+        );
+
+        return $this->update_databases($company, $updates, $check_only);
     }
 
-    function activate_extension($company, $force = false)
+    function deactivate_extension($company, $check_only=true)
     {
-        $this->install_extension($company, $force);
-        add_security_section(SS_ksf_FA_Quality, 'Quality 8D', 'SA_QUALITY');
         return true;
-    }
-
-    function deactivate_extension($company, $force = false)
-    {
-        $uninstallFile = __DIR__ . '/sql/uninstall.sql';
-        if (file_exists($uninstallFile)) {
-            $sql = file_get_contents($uninstallFile);
-            run_db_import($sql, $company);
-        }
-
-        remove_security_section(SS_ksf_FA_Quality);
-        return parent::deactivate_extension($company, $force);
     }
 
     function getModuleConstants(&$data, $opts = [])
@@ -73,14 +54,50 @@ class hooks_ksf_FA_Quality extends hooks
         return $data;
     }
 
-    function hook_invoke_all($hook, &$data)
+    public function hasCapability(&$data, $opts = null)
     {
-        $autoload = __DIR__ . '/vendor/autoload.php';
-        if (!file_exists($autoload)) {
-            return null;
+        $capability = isset($opts['capability']) ? $opts['capability'] : (isset($data['capability']) ? $data['capability'] : null);
+        if ($capability === null) {
+            $data['has_capability'] = false;
+            return false;
         }
-        require_once $autoload;
+        $caps = ['create', 'view', 'edit', 'close'];
+        $hasCapability = in_array($capability, $caps);
+        $data['has_capability'] = $hasCapability;
+        return $hasCapability;
+    }
 
-        return parent::hook_invoke_all($hook, $data);
+    public function respondToCapabilityRequest(&$data, $opts = null)
+    {
+        $request = isset($opts['request']) ? $opts['request'] : (isset($data['request']) ? $data['request'] : 'capabilities');
+        $data['request'] = $request;
+        $data['module'] = $this->module_name;
+
+        if (strpos($request, 'has:') === 0) {
+            $capability = substr($request, 4);
+            return $this->hasCapability($data, ['capability' => $capability]);
+        }
+
+        switch ($request) {
+            case 'capabilities':
+                $data['capabilities'] = $this->getModuleCapabilities($data, $opts);
+                return $data['capabilities'];
+            default:
+                return null;
+        }
+    }
+
+    function install_access()
+    {
+        $security_sections[SS_ksf_FA_Quality] = _("Quality 8D");
+        $security_areas['SA_ksf_FA_QUALITY_8D'] = array(
+            SS_ksf_FA_Quality | 1,
+            _("Manage Quality 8D")
+        );
+        $security_areas['SA_ksf_FA_QUALITY_8D_VIEW'] = array(
+            SS_ksf_FA_Quality | 2,
+            _("View Quality 8D")
+        );
+        return array($security_areas, $security_sections);
     }
 }
